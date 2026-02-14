@@ -49,33 +49,38 @@ export default function Dashboard({ user, initialBookmarks }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Realtime subscription
     const channel = supabase
-      .channel("realtime bookmarks")
+      .channel("realtime-bookmarks")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "bookmarks" },
-        (payload) => {
-          const newBookmark = payload.new;
-          setBookmarks((prev) => {
-            if (prev.find((b) => b.id === newBookmark.id)) return prev;
-            return [newBookmark, ...prev];
-          });
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "bookmarks",
         },
+        (payload) => {
+          setBookmarks((prev) => [...prev, payload.new]);
+        }
       )
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "bookmarks" },
-        (payload) => {
-          setBookmarks((prev) => prev.filter((b) => b.id !== payload.old.id));
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "bookmarks",
         },
+        (payload) => {
+          setBookmarks((prev) =>
+            prev.filter((b) => b.id !== payload.old.id)
+          );
+        }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, []);
 
   const showNotification = (msg, type) => {
     setNotification({ message: msg, type });
